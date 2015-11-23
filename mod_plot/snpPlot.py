@@ -47,10 +47,6 @@ class Chromosome:
 
 
 ChromosomeDict = _23andmeObject("../data/raw23andme_SNPs_teyden.txt", 'CHROMOSOME')
-ChromosomeDict['23'] = ChromosomeDict.pop('X')
-ChromosomeDict['24'] = ChromosomeDict.pop('Y')
-ChromosomeDict['25'] = ChromosomeDict.pop('MT')
-
 ChromosomePositions = {}
 Chromosomes = {}	# Dictionary of Chromosome objects
 

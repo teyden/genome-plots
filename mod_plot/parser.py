@@ -39,6 +39,17 @@ def add_rsidValues(chromosome="", position=0, genotype=""):
 	return new_snp
 
 
+def swapChrom(x):
+	if x == 'X':
+		return '23'
+	elif x == 'Y':
+		return '24'
+	elif x == 'MT' or x == 'M':
+		return '25'
+	else:
+		return x
+
+
 sortOptions = [RSID, CHROMOSOME, POSITION]
 def parse_23andmeFile(user_snp_file="", sortOption=""):
 	"""
@@ -82,10 +93,11 @@ def parse_23andmeFile(user_snp_file="", sortOption=""):
 						}
 
 				elif sortOption == CHROMOSOME:
+					chromosome = swapChrom(chromosome)
 					output[chromosome][position] = {
-						RSID: rsid, 
+						RSID: rsid,
 						GENOTYPE: genotype
-						}	
+						}
 
 		print "Total: %d" % numSNPs
 		f.close()
@@ -93,7 +105,6 @@ def parse_23andmeFile(user_snp_file="", sortOption=""):
 	else:
 		print "Path <%s> not found" % user_snp_file
 		return {}
-
 
 def _23andmeObject(SNPfile, sortOption):
 	"""
@@ -104,6 +115,82 @@ def _23andmeObject(SNPfile, sortOption):
 		raise ValueError, "Please select a valid sortOption: RSID, CHROMOSOME, or POSITION"
 
 	output = parse_23andmeFile(SNPfile, sortOption)
+	if output == {}:
+		printMsg("Error: verify inputs")
+		return {}
+	else:
+		all = [len(output[chr]) for chr in output]
+		numSNPs = sum(all)
+		printMsg("Success! SNP dictionary obtained by %s (%s SNPs)" % (sortOption, numSNPs))
+		return output 
+
+
+def parse_reference(file="", sortOption=""):
+	"""
+	Parses SNPs of user from locally saved file (.txt format) 
+	that was downloaded through user upload or 23andme access. 
+
+	Returns one of ...
+	- Dictionary of all 23andme SNPs with RSID key
+	- Dictionary of all 23andme SNPs with CHROMSOME key to a 
+	dictionary of each SNP in a chromosome with POSITION key
+	- Dictionary of all 23andme SNPs with POSITION key
+
+	"""
+	if os.path.exists(file):
+		f = open(file, 'r')
+		
+		output = {}
+		if sortOption == CHROMOSOME:			
+			for chr in CHROMOSOME_LIST:
+				output[chr] = {} 
+		
+		numSNPs = 0
+		for line in f:
+			line = line.strip()
+			if line[0] != "#":
+				chromosome, position, rsid, genotype = line.split()
+				numSNPs += 1
+
+				if sortOption == RSID: 
+					output[rsid] = {
+						CHROMOSOME: chromosome, 
+						GENOTYPE: genotype, 
+						POSITION: position
+						} 
+
+				elif sortOption == POSITION:
+					output[position] = {
+						CHROMOSOME: chromosome, 
+						GENOTYPE: genotype, 
+						RSID: rsid
+						}
+
+				elif sortOption == CHROMOSOME:
+					chromosome = chromosome[3:]
+					chromosome = swapChrom(chromosome)
+					output[chromosome][position] = {
+						RSID: rsid,
+						GENOTYPE: genotype
+						}
+
+		print "Total: %d" % numSNPs
+		f.close()
+		return output 
+	else:
+		print "Path <%s> not found" % file
+		return {}
+
+
+def _referenceObject(SNPfile, sortOption):
+	"""
+	Returns a SNP dictionary in the specified sorting format.
+	Options are: [RSID, CHROMOSOME, POSITION]
+	"""
+	if not any([sortOption != option for option in sortOptions]):
+		raise ValueError, "Please select a valid sortOption: RSID, CHROMOSOME, or POSITION"
+
+	output = parse_reference(SNPfile, sortOption)
 	if output == {}:
 		printMsg("Error: verify inputs")
 		return {}
@@ -152,24 +239,37 @@ def stream2BEDfile(SNPdict, filename):
 	printMsg("Completed streaming to BED file format (path=bed/%s)" % filename)
 
 
-def stream2SSfile(SNPdict, filename):
+def stream2SSfile(RefSNPdict, UserSNPdict, filename):
 	"""
 	Makes simple SNP file for analysis by SNPhylo tree maker
 
+	** 
+	- SNPhylo is case-sensitive
+	- Also requires single genotype mutation, represent single alleles different from the ref only
+
 	### BASIC FORMAT:
-	#chrNum 	position 	SampleID1	SampleID2	... 
+	#chrNum 	position 	Ref 	SampleID1	... 
 	1		1000		A 		A 		T 
 	"""
-	F = open('simplesnp/%s.txt' % filename, 'w')
-	F.write('#Chrom\tPos\tSampleID1\t\n')
+	F = open('../../BIO_DATA/simplesnp/%s.txt' % filename, 'w')
+	F.write('#Chrom\tPos\tRef\tSampleID1\t\n')
 	for chr in CHROMOSOME_LIST:
-		positions = SNPdict[chr].keys()
+		positions = RefSNPdict[chr].keys()
 		positions.sort()
 		for pos in positions:
 			chrNum = chr								# 1
 			position = pos 		 						# 2
-			sample = SNPdict[chr][pos][GENOTYPE]		# 3
-			F.write('%s\t%s\t%s\t\n' % (chrNum, position, sample))
+			ref = RefSNPdict[chr][pos][GENOTYPE].upper()
+			if pos in UserSNPdict[chr]:
+				sample_genotype = UserSNPdict[chr][pos][GENOTYPE]		# 3
+				sample = sample_genotype
+				if len(sample_genotype) > 1:
+					if ref.lower() == sample_genotype[0].lower():
+						sample = sample_genotype[1]
+					else:
+						sample = sample_genotype[0]
+				F.write('%s\t%s\t%s\t%s\t\n' % (chrNum, position, ref, sample))
+
 	F.close()
 	printMsg("Completed streaming to Simple SNP file format (path=simplesnp/%s)" % filename)
 
