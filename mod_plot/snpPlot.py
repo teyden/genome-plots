@@ -46,7 +46,7 @@ class Chromosome:
 
 
 
-ChromosomeDict = _23andmeObject("../data/raw23andme_SNPs_teyden.txt", 'CHROMOSOME')
+ChromosomeDict = _23andmeObject("../../BIO_DATA/raw23andme_SNPs_teyden.txt", 'CHROMOSOME')
 ChromosomePositions = {}
 Chromosomes = {}	# Dictionary of Chromosome objects
 

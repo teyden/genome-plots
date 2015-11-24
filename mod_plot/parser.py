@@ -252,7 +252,7 @@ def stream2SSfile(RefSNPdict, UserSNPdict, filename):
 	1		1000		A 		A 		T 
 	"""
 	F = open('../../BIO_DATA/simplesnp/%s.txt' % filename, 'w')
-	F.write('#Chrom\tPos\tRef\tSampleID1\t\n')
+	F.write('#Chrom\tPos\tRef\tSampleID1\n')
 	for chr in CHROMOSOME_LIST:
 		positions = RefSNPdict[chr].keys()
 		positions.sort()
@@ -268,7 +268,7 @@ def stream2SSfile(RefSNPdict, UserSNPdict, filename):
 						sample = sample_genotype[1]
 					else:
 						sample = sample_genotype[0]
-				F.write('%s\t%s\t%s\t%s\t\n' % (chrNum, position, ref, sample))
+				F.write('%s\t%s\t%s\t%s\n' % (chrNum, position, ref, sample))
 
 	F.close()
 	printMsg("Completed streaming to Simple SNP file format (path=simplesnp/%s)" % filename)
