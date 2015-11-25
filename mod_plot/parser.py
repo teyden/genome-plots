@@ -42,7 +42,7 @@ def add_rsidValues(chromosome="", position=0, genotype=""):
 def swapChrom(x):
 	if x == 'X':
 		return '23'
-	elif x == 'Y':
+ 	elif x == 'Y':
 		return '24'
 	elif x == 'MT' or x == 'M':
 		return '25'
@@ -201,21 +201,6 @@ def _referenceObject(SNPfile, sortOption):
 		return output 
 
 
-FILETYPES = ['vcf', '23andme', 'hapmap', 'bed']
-def grabData(filetype, filepath):
-	"""
-	~/Projects/snphylo/snphylo.sh -v genetic_data/snps/snps_teyden.vcf
-	Grabs data from any of the filetypes specified below and
-	returns a JSON for each value
-	"""
-	if filetype == FILETYPES[1]:
-		pass
-
-
-def printDataLines(SNPdict):
-	pass
-
-
 def stream2BEDfile(SNPdict, filename):
 	"""
 	Makes simple BED file 
@@ -272,6 +257,14 @@ def stream2SSfile(RefSNPdict, UserSNPdict, filename):
 
 	F.close()
 	printMsg("Completed streaming to Simple SNP file format (path=simplesnp/%s)" % filename)
+
+
+def stream2SRSIDfile(input, filename):
+	"""
+	Streams input data containing SNP rsid's to an output (filename) file
+	containing just the RSID values in each line. 
+	"""
+	pass
 
 
 def stream2HapMapfile(SNPdict, filename):
