@@ -119,8 +119,11 @@ def _23andmeObject(SNPfile, sortOption):
 		printMsg("Error: verify inputs")
 		return {}
 	else:
-		all = [len(output[chr]) for chr in output]
-		numSNPs = sum(all)
+		if sortOption == 'CHROMOSOME':
+			all = [len(output[x]) for x in output]
+			numSNPs = sum(all)
+		if sortOption == 'RSID' or sortOption == 'POSITION':
+			numSNPs = len(output)
 		printMsg("Success! SNP dictionary obtained by %s (%s SNPs)" % (sortOption, numSNPs))
 		return output 
 
@@ -174,7 +177,7 @@ def parse_reference(file="", sortOption=""):
 						GENOTYPE: genotype
 						}
 
-		print "Total: %d" % numSNPs
+		print "Total SNPs: %d" % numSNPs
 		f.close()
 		return output 
 	else:

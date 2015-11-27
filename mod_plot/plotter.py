@@ -48,7 +48,7 @@ def make_bar_trace(X=[], Y=[], name="", color='rgb(234, 153, 153)'):
         )
     )
 
-def plot_with_plotly(X=[], Y=[], Titles=[], trace=[]):
+def plot_with_plotly(X=[], Y=[], Titles=[], trace=[], ticktext={}):
 	"""
 	Plotter for the plotly module. Loads the web interface 
 	for plotly upon successful call to the function, prints
@@ -81,7 +81,8 @@ def plot_with_plotly(X=[], Y=[], Titles=[], trace=[]):
 			title=Titles[0],
 			showgrid=True,
 			zeroline=True,
-			gridwidth=0.8
+			gridwidth=0.8,
+			ticktext=ticktext['x']
 			),
 		yaxis=YAxis(
 			title=Titles[1],
