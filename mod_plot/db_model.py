@@ -1,6 +1,7 @@
 from parser import _23andmeObject
 from scoreAlleles import scoreAlleles
 
+import datetime 
 import os
 from flask import request 
 from pymongo import MongoClient
@@ -21,7 +22,7 @@ mongo_db = client[MONGO_DATABASE_STR]
 
 ReferenceSNPCollection = mongo_db.ReferenceSNPCollection
 # ID's are mapped to users_collection id's. Contains the SNPs of a user from user_collection
-UsersSNPCollection = mongo_db.UsersSNPCollection
+UsersSNPCollection = mongo_db.SNPCollection.users
 # Collection of all users registered (through /signup)
 users_collection = mongo_db.users_collection
 # Collection of rsIDs inputted by owner
@@ -33,6 +34,7 @@ PopoverData = mongo_db.PopoverData
 AccessCodes = mongo_db.AccessCodes
 
 # Distinction between using blah_collection vs. blah ?  [*][*][*]
+
 users = users_collection.users
 rsIDs = rsIDs_collection.rsIDs 
 suggestMsgs = suggestMsgs_collection.suggestMsgs
@@ -73,12 +75,13 @@ def addRefRSIDs_toDB(file):
 				chromosome, position, rsid, genotype = line.split()
 				numSNPs += 1
 
-				ReferenceSNPCollection.insert({
-					'_id': rsid,
-					CHROMOSOME: chromosome,
-					POSITION: position, 
-					GENOTYPE: genotype
-					})
+				if not ReferenceSNPCollection.find({ '_id': rsid }):				
+					ReferenceSNPCollection.insert({
+						'_id': rsid,
+						CHROMOSOME: chromosome,
+						POSITION: position, 
+						GENOTYPE: genotype
+						})
 
 		print "%s SNPs added to ReferenceSNPCollection" % numSNPs
 		f.close()
@@ -93,13 +96,20 @@ def addUsersRSIDs_toDB(file, userObjID=''):
 	as a JSON. The object id value for each SNP JSON collection is the same object
 	id as the user's object id in users_collection.
 	
-	The file input MUST be the file output from scoreAlleles().
+	file: a file output from scoreAlleles().
+	userObjID: a user id from the users_collection.users
+
+	"_id": {
+        "$oid": "555a83687a349b6910bdff6c"
+    }
 
 	"""
 	if userObjID == '':
 		userObjID = raw_input('Please enter a user ID: ')
 
-	UsersSNPCollection.insert({ '_id': userObjID, snps: {} })
+	if not UsersSNPCollection.find({ '_id': userObjID }):
+		UsersSNPCollection.insert({ '_id': userObjID })
+
 	if os.path.exists(file):
 		f = open(file, 'r')
 
@@ -107,18 +117,31 @@ def addUsersRSIDs_toDB(file, userObjID=''):
 		for line in f:
 			line = line.strip()
 			if line[0] != "#":
-				cchr, rsid, pos, refAllele, sampleAllele, variant, score = line.split()
+				chr, rsid, pos, refAllele, sampleAllele, variant, score = line.split()
 				numSNPs += 1
 
-				# ReferenceSNPCollection.insert({
-				# 	'_id': userObjID,
-				# 	RSID =  
-				# 	CHROMOSOME: chr,
-				# 	POSITION: position, 
-				# 	GENOTYPE: genotype
-				# 	})
+				UsersSNPCollection.update(
+					{'_id': userObjID },
+					{ '$set': 
+						{ rsid: 
+							{ 
+								CHROMOSOME: chr,
+								POSITION: pos,
+								GENOTYPE: sampleAllele,
+								'REF': refAllele,
+								'VARIANT': variant,
+								'MATCH_SCORE': score,
+								'SNPEDIA_LINK': 'http://www.snpedia.com/index.php/'+rsid,
+								'DB_SNP_LINK': 'http://www.ncbi.nlm.nih.gov/SNP/snp_ref.cgi?rs='+rsid,
+								'DATE': datetime.datetime.now().ctime()
+							}
+						}
+					}
+				)
 
-		print "%s SNPs added to ReferenceSNPCollection" % numSNPs
+		print "%s SNPs added to UsersSNPCollection" % numSNPs
 		f.close()
 	else:
 		print "Path <%s> not found" % file
+
+addUsersRSIDs_toDB(DEFAULT_OUTPUT_FILEPATH, userObjID="555a83687a349b6910bdff6c")
