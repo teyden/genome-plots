@@ -130,37 +130,37 @@ blue = 'rgb(234, 153, 153)'
 # ticktext = {'x': ['%s' % x for x in range(1, 23) + ['X', 'Y', 'MT']]}
 # plot_with_plotly(X=X_axis, Y=Y_axis, Titles=[x_title, y_title, plot_title], trace=[trace], ticktext=ticktext)
 
-STREAM_ID="rtmpmhxqrz"
-y_title = "SNP location (bp)"
-x_title = "Chromosome"
-plot_title = "23andMe SNP Chromosome Density"
-x_ticks = ['%s' % x for x in range(1, 23) + ['X', 'Y', 'MT']]
+# STREAM_ID="rtmpmhxqrz"
+# y_title = "SNP location (bp)"
+# x_title = "Chromosome"
+# plot_title = "23andMe SNP Chromosome Density"
+# x_ticks = ['%s' % x for x in range(1, 23) + ['X', 'Y', 'MT']]
 
-figure = Figure(
-	data=Data([
-		Scatter( 
-			x=X_axis, 
-			y=Y_axis,
-			line=Line(color='rgb(234, 153, 153)', width=0.2)
-		)]),
-	layout=Layout(
-		title=plot_title,
-		xaxis=XAxis(
-			title=x_title,
-			ticktext=x_ticks,
-			tickvals=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25]
-			),
-		yaxis=YAxis(
-			title=y_title
-			),
-		font = dict(
-			size=14
-			),
-		titlefont = dict(
-			size=24
-			)
-		)
-	)
+# figure = Figure(
+# 	data=Data([
+# 		Scatter( 
+# 			x=X_axis, 
+# 			y=Y_axis,
+# 			line=Line(color='rgb(234, 153, 153)', width=0.2)
+# 		)]),
+# 	layout=Layout(
+# 		title=plot_title,
+# 		xaxis=XAxis(
+# 			title=x_title,
+# 			ticktext=x_ticks,
+# 			tickvals=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25]
+# 			),
+# 		yaxis=YAxis(
+# 			title=y_title
+# 			),
+# 		font = dict(
+# 			size=14
+# 			),
+# 		titlefont = dict(
+# 			size=24
+# 			)
+# 		)
+# 	)
 
-py.plot(figure, filename='SNP Chromosome Density', stream=Stream(token=STREAM_ID, maxpoints=1000))
-printMsg("Plot (%s) has been plotted with plotly." % plot_title)
+# py.plot(figure, filename='SNP Chromosome Density', stream=Stream(token=STREAM_ID, maxpoints=1000))
+# printMsg("Plot (%s) has been plotted with plotly." % plot_title)
