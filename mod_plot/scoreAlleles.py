@@ -1,5 +1,6 @@
 import os
 import parser
+from db_model import ChromosomeCollection
 
 DEFAULT_OUTPUT_FILEPATH = '../../BIO_DATA/alleleScores.txt'
 DEFAULT_REF_FILEPATH = '../../BIO_DATA/23andme_v4_hg19_ref.txt'
@@ -13,6 +14,13 @@ POSITION = 'POSITION'
 GENOTYPE = 'GENOTYPE'
 DATE = 'DATE'
 
+def isIndel(genotype):
+	if len(genotype) > 1 and any([genotype == x for x in ['DD', 'DI', 'ID', 'II']]):
+		return True
+	elif len(genotype) == 1 and any([genotype == x for x in ['D', 'I']]):
+		return True
+	else:
+		return False 
 
 def scoreAlleles(RefSNPFile, UserSNPFile):
 	"""
@@ -45,12 +53,14 @@ def scoreAlleles(RefSNPFile, UserSNPFile):
 
 	nonMatchedRSIDs = []
 	numMatchedRSIDs = 0
+	indel = {}
 
 	F = open(DEFAULT_OUTPUT_FILEPATH, 'w')
 	F.write('#Chrom\tRSID\tPos\tRef\tGenotype\tVariant(s)\tMatch Score\n')
 	for chr in parser.CHROMOSOME_LIST:
 		positions = RefSNPdict[chr].keys()
 		positions.sort()
+		indel[chr] = {}
 		for pos in positions:
 			refAllele = RefSNPdict[chr][pos][GENOTYPE].upper()
 			rsid = RefSNPdict[chr][pos][RSID]
@@ -59,6 +69,12 @@ def scoreAlleles(RefSNPFile, UserSNPFile):
 			if pos in UserSNPdict[chr]:
 				if rsid != UserSNPdict[chr][pos][RSID]:
 					nonMatchedRSIDs += [(rsid, UserSNPdict[chr][pos][RSID])]
+
+				if isIndel(UserSNPdict[chr][pos][GENOTYPE]):
+					indel[chr][pos] = {
+						RSID: UserSNPdict[chr][pos][RSID], 
+						GENOTYPE: UserSNPdict[chr][pos][GENOTYPE]
+						}
 
 				else:
 					numMatchedRSIDs += 1
@@ -100,5 +116,41 @@ def scoreAlleles(RefSNPFile, UserSNPFile):
 	parser.printMsg("Completed scoring user SNPs to REF SNPs. Streamed to a .teyden (LOL) file format (path=%s)" % DEFAULT_OUTPUT_FILEPATH)
 	parser.printMsg('Number of matched rsid values: %s' % numMatchedRSIDs)
 	parser.printMsg('Number of unmatched rsid values: %s' % len(nonMatchedRSIDs))
+	return indel 
 
-# scoreAlleles(DEFAULT_REF_FILEPATH, DEFAULT_USER_FILEPATH)
+indel = scoreAlleles(DEFAULT_REF_FILEPATH, DEFAULT_USER_FILEPATH)
+print len(indel)
+
+for chr in indel:
+	totalIndels = len(indel[chr].keys())
+	numInsertions = 0
+	numDeletions = 0
+	numIDDI = 0
+	for pos in indel[chr].keys():
+		if any([indel[chr][pos][GENOTYPE] == x for x in ['I', 'II']]):
+			numInsertions += 1
+		elif any([indel[chr][pos][GENOTYPE] == x for x in ['D', 'DD']]):
+			numDeletions += 1
+		elif any([indel[chr][pos][GENOTYPE] == x for x in ['ID', 'DI']]):
+			numIDDI += 1
+
+	if chr == '23':
+		chrom = 'X'
+	elif chr == '24':
+		chrom = 'Y'
+	elif chr == '25':
+		chrom = 'MT'
+	else:
+		chrom = chr
+	ChromosomeCollection.update_one(
+		{'_id': chr},
+		{'$set':
+			{
+				# 'totalIndels': totalIndels,
+				# 'numIDDI': numIDDI,
+				# 'numInsertions': numInsertions,
+				# 'numDeletions': numDeletions
+				'value': chrom
+			}
+		}
+	)

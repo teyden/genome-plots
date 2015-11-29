@@ -1,5 +1,5 @@
-from parser import _23andmeObject
-from scoreAlleles import scoreAlleles
+from parser import _23andmeObject, printMsg
+# from scoreAlleles import scoreAlleles
 
 import datetime 
 import os
@@ -23,6 +23,7 @@ mongo_db = client[MONGO_DATABASE_STR]
 ReferenceSNPCollection = mongo_db.ReferenceSNPCollection
 # ID's are mapped to users_collection id's. Contains the SNPs of a user from user_collection
 UsersSNPCollection = mongo_db.SNPCollection.users
+ChromosomeCollection = mongo_db.ChromosomeCollection
 # Collection of all users registered (through /signup)
 users_collection = mongo_db.users_collection
 # Collection of rsIDs inputted by owner
@@ -107,8 +108,8 @@ def addUsersRSIDs_toDB(file, userObjID=''):
 	if userObjID == '':
 		userObjID = raw_input('Please enter a user ID: ')
 
-	if not UsersSNPCollection.find({ '_id': userObjID }):
-		UsersSNPCollection.insert({ '_id': userObjID })
+	# if not UsersSNPCollection.find({ '_id': userObjID }):
+	# 	UsersSNPCollection.insert({ '_id': userObjID })
 
 	if os.path.exists(file):
 		f = open(file, 'r')
@@ -117,31 +118,117 @@ def addUsersRSIDs_toDB(file, userObjID=''):
 		for line in f:
 			line = line.strip()
 			if line[0] != "#":
-				chr, rsid, pos, refAllele, sampleAllele, variant, score = line.split()
+				chr, rsid, pos, refAllele, genotype, variant, score = line.split()
 				numSNPs += 1
 
-				UsersSNPCollection.update(
-					{'_id': userObjID },
-					{ '$set': 
-						{ rsid: 
-							{ 
-								CHROMOSOME: chr,
-								POSITION: pos,
-								GENOTYPE: sampleAllele,
-								'REF': refAllele,
-								'VARIANT': variant,
-								'MATCH_SCORE': score,
-								'SNPEDIA_LINK': 'http://www.snpedia.com/index.php/'+rsid,
-								'DB_SNP_LINK': 'http://www.ncbi.nlm.nih.gov/SNP/snp_ref.cgi?rs='+rsid,
-								'DATE': datetime.datetime.now().ctime()
-							}
-						}
-					}
-				)
+				if genotype == 'II' or genotype == 'I':
+					tag = 'insertion'
+				elif genotype == 'DD' or genotype == 'D':
+					tag = 'deletion'
+				elif genotype == 'DI' or genotype == 'ID':
+					tag = 'indel'
+				else:
+					tag = 'normal'
+
+				# if not UsersSNPCollection.find({ '_id': rsid }):	
+				UsersSNPCollection.insert({
+					'_id': rsid,
+					CHROMOSOME: chr,
+					POSITION: pos,
+					GENOTYPE: genotype,
+					RSID: rsid,
+					'REF': refAllele,
+					'VARIANT': variant,
+					'GENOTYPE_TAG': tag,
+					'MATCH_SCORE': score,
+					'SNPEDIA_LINK': 'http://www.snpedia.com/index.php/'+rsid,
+					'DB_SNP_LINK': 'http://www.ncbi.nlm.nih.gov/SNP/snp_ref.cgi?rs='+rsid,
+					'DATE': datetime.datetime.now().ctime(),
+					'USER_ID': userObjID
+					})
 
 		print "%s SNPs added to UsersSNPCollection" % numSNPs
 		f.close()
 	else:
 		print "Path <%s> not found" % file
 
-addUsersRSIDs_toDB(DEFAULT_OUTPUT_FILEPATH, userObjID="555a83687a349b6910bdff6c")
+# addUsersRSIDs_toDB(DEFAULT_OUTPUT_FILEPATH, userObjID="555a83687a349b6910bdff6c")
+
+usersSNPs = [snpColl for snpColl in UsersSNPCollection.find()]
+count = 0
+nadas = []
+for snp in UsersSNPCollection.find():
+	if 'HTML' in snp:
+		count += 1
+		if snp['HTML'] == '<span class="label label-danger">':
+			UsersSNPCollection.update_one(
+				{ '_id': snp['RSID'] }, 
+				{ '$set': 
+					{
+						"HTML": '<span class="label label-primary">'
+					}
+				}
+			)
+		elif snp['HTML'] == '<span class="label label-primary">' and snp['MATCH_SCORE'] == '2' and snp['GENOTYPE_TAG'] == 'normal':
+			UsersSNPCollection.update_one(
+				{ '_id': snp['RSID'] }, 
+				{ '$set': 
+					{
+						"HTML": '<span class="label label-default">'
+					}
+				}
+			)
+		elif snp['HTML'] == '<span class="label label-primary">' and snp['MATCH_SCORE'] == '0' and snp['GENOTYPE_TAG'] == 'normal':
+			UsersSNPCollection.update_one(
+				{ '_id': snp['RSID'] }, 
+				{ '$set': 
+					{
+						"HTML": '<span class="label label-warning">'
+					}
+				}
+			)
+	else:
+		pass
+
+	# if 'HTML' not in snp:
+	# 	count += 1
+	# 	if snp['MATCH_SCORE'] == '0' and snp['GENOTYPE_TAG'] == 'normal':
+	# 		UsersSNPCollection.update_one(
+	# 			{'_id': snp['RSID']},
+	# 			{ '$set': 
+	# 				{
+	# 					"HTML": '<span class="label label-warning">'	# Orange
+	# 				}
+	# 			}
+	# 		)
+	# 	elif snp['MATCH_SCORE'] == '1' and snp['GENOTYPE_TAG'] == 'normal':
+	# 		UsersSNPCollection.update_one(
+	# 			{ '_id': snp['RSID'] }, 
+	# 			{ '$set': 
+	# 				{
+	# 					"HTML": '<span class="label label-success">'	# Green
+	# 				}
+	# 			}
+	# 		)
+	# 	elif snp['MATCH_SCORE'] == '2' and snp['GENOTYPE_TAG'] == 'normal':
+	# 		UsersSNPCollection.update_one(
+	# 			{ '_id': snp['RSID'] }, 
+	# 			{ '$set': 
+	# 				{
+	# 					"HTML": '<span class="label label-default">'
+	# 				}
+	# 			}
+	# 		)
+	# 	elif snp['GENOTYPE_TAG'] == 'deletion' or snp['GENOTYPE_TAG'] == 'insertion' or snp['GENOTYPE_TAG'] == 'indel':
+	# 		UsersSNPCollection.update_one(
+	# 			{ '_id': snp['RSID'] }, 
+	# 			{ '$set': 
+	# 				{
+	# 					"HTML": '<span class="label label-danger">'
+	# 				}
+	# 			}
+	# 		)
+	# 	else:
+	# 		nadas.append(snp)
+
+printMsg("SNP's updated = %s; SNP's not updated and don't know why = %s, SNP's already updated = %s" % (len(usersSNPs)-count, len(nadas), count))

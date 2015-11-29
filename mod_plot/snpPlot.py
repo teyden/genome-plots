@@ -1,4 +1,5 @@
 from parser import _23andmeObject, stream2BEDfile, stream2SSfile, CHROMOSOME_LIST, printMsg
+from db_model import ChromosomeCollection
 import numpy as np
 from matplotlib import pyplot as plt
 
@@ -93,9 +94,19 @@ printMsg("Chromosomes By Size")
 index = 1
 for size in ChromosomeSizes:
 	for chrom in Chromosomes:
+		if not ChromosomeCollection.find({'_id': chrom}):
+			ChromosomeCollection.insert({'_id': chrom})
 		if size == Chromosomes[chrom].size():
 			print "%d | Chr%s  %s bp | %s #SNPs" % (index, chrom, Chromosomes[chrom].size(), Chromosomes[chrom].totalSNPs())
 			index += 1
+			ChromosomeCollection.update_one(
+				{'_id': chrom},
+				{'$set':
+					{
+						'number': chrom 
+					}
+				}
+			)
 		if largest_size == Chromosomes[chrom].size():
 			largest_chrom = chrom
 		if smallest_size == Chromosomes[chrom].size():
