@@ -1,4 +1,4 @@
-import parser
+import parseNstream
 import os
 
 ##############
@@ -37,12 +37,12 @@ class BioinformaticsFile:
 		- position
 		- sample genotype
 
-		If input filetype is not specified, then send through parser to predict filetype? 
+		If input filetype is not specified, then send through parseNstream to predict filetype? 
 		"""
 		if os.path.exists(inputPath):
 			self.inputPath = inputPath
 			self.referencePath = '/Volumes/teyden/BIOINFORMATICS/23andme2vcf/23andme_v4_hg19_ref.txt'
-			self.genome = parser._23andmeObject(self.inputPath, sortOption='CHROMOSOME')  ## 
+			self.genome = parseNstream._23andmeObject(self.inputPath, sortOption='CHROMOSOME')  ## 
 			self.chrList = [ '%s' % i for i in range(1,26)] # + ['X', 'Y', 'MT']
 
 	def _getEndpoint(self, format=''):
@@ -87,7 +87,7 @@ class BioinformaticsFile:
 						sample = self.genome[chr][refPos][GENOTYPE]
 					F.write('%s\t%s\t%s\t%s\n' % (chr, pos, refGenotype, sample))
 		F.close()
-		parser.printMsg("Completed streaming to Simple SNP file format (path=%s)" % self.outputPath)
+		parseNstream.printMsg("Completed streaming to Simple SNP file format (path=%s)" % self.outputPath)
 
 
 	def _stream2SRSIDfile(self):
@@ -102,7 +102,7 @@ class BioinformaticsFile:
 				F.write('%s\n' % self.genome[chr][pos][RSID])
 
 		F.close()
-		parser.printMsg("Completed streaming to simple RSID file format (path=%s)" % self.outputPath)
+		parseNstream.printMsg("Completed streaming to simple RSID file format (path=%s)" % self.outputPath)
 
 
 	def _stream2VCFfile(self):
@@ -130,7 +130,7 @@ class BioinformaticsFile:
 			self._stream2BEDfile()
 		elif format.upper() == 'SS':
 			# Input and output of files should also be via the DB
-			ref_snps = parser._referenceObject(self.referencePath, 'CHROMOSOME')  ## parser functions to be added as methods to a Genome object
+			ref_snps = parseNstream._referenceObject(self.referencePath, 'CHROMOSOME')  ## parseNstream functions to be added as methods to a Genome object
 			self._stream2SSfile(ref_snps)
 		elif format.upper() == 'RSID':
 			self._stream2SRSIDfile()

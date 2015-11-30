@@ -1,4 +1,4 @@
-from parser import _23andmeObject, stream2BEDfile, stream2SSfile, CHROMOSOME_LIST, printMsg
+from parseNstream import _23andmeObject, stream2BEDfile, stream2SSfile, CHROMOSOME_LIST, printMsg
 from db_model import ChromosomeCollection
 import numpy as np
 from matplotlib import pyplot as plt
@@ -13,7 +13,7 @@ DATE = 'DATE'
 
 """
 ******* TO BE MOVED TO mod_snp in mySNPit ********
-along with parser.py and BioinformaticsFile.py
+along with parseNstream.py and BioinformaticsFile.py
 
 Needs:
 (1) One list of SNP positions for every chromosome (1-22, X, Y, MT)

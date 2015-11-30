@@ -1,4 +1,4 @@
-from parser import _23andmeObject, printMsg
+from parseNstream import _23andmeObject, printMsg
 # from scoreAlleles import scoreAlleles
 
 import datetime 

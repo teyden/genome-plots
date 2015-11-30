@@ -1,5 +1,5 @@
 import os
-import parser
+import parseNstream
 from db_model import ChromosomeCollection
 
 DEFAULT_OUTPUT_FILEPATH = '../../BIO_DATA/alleleScores.txt'
@@ -48,8 +48,8 @@ def scoreAlleles(RefSNPFile, UserSNPFile):
 
 	RETURNS: none, streams to file... 
 	"""
-	RefSNPdict = parser._referenceObject(RefSNPFile, 'CHROMOSOME')
-	UserSNPdict = parser._23andmeObject(UserSNPFile, 'CHROMOSOME')
+	RefSNPdict = parseNstream._referenceObject(RefSNPFile, 'CHROMOSOME')
+	UserSNPdict = parseNstream._23andmeObject(UserSNPFile, 'CHROMOSOME')
 
 	nonMatchedRSIDs = []
 	numMatchedRSIDs = 0
@@ -57,7 +57,7 @@ def scoreAlleles(RefSNPFile, UserSNPFile):
 
 	F = open(DEFAULT_OUTPUT_FILEPATH, 'w')
 	F.write('#Chrom\tRSID\tPos\tRef\tGenotype\tVariant(s)\tMatch Score\n')
-	for chr in parser.CHROMOSOME_LIST:
+	for chr in parseNstream.CHROMOSOME_LIST:
 		positions = RefSNPdict[chr].keys()
 		positions.sort()
 		indel[chr] = {}
@@ -113,9 +113,9 @@ def scoreAlleles(RefSNPFile, UserSNPFile):
 					F.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\n' % (chr, rsid, pos, refAllele, sampleAllele, variant, score))
 
 	F.close()
-	parser.printMsg("Completed scoring user SNPs to REF SNPs. Streamed to a .teyden (LOL) file format (path=%s)" % DEFAULT_OUTPUT_FILEPATH)
-	parser.printMsg('Number of matched rsid values: %s' % numMatchedRSIDs)
-	parser.printMsg('Number of unmatched rsid values: %s' % len(nonMatchedRSIDs))
+	parseNstream.printMsg("Completed scoring user SNPs to REF SNPs. Streamed to a .teyden (LOL) file format (path=%s)" % DEFAULT_OUTPUT_FILEPATH)
+	parseNstream.printMsg('Number of matched rsid values: %s' % numMatchedRSIDs)
+	parseNstream.printMsg('Number of unmatched rsid values: %s' % len(nonMatchedRSIDs))
 	return indel 
 
 indel = scoreAlleles(DEFAULT_REF_FILEPATH, DEFAULT_USER_FILEPATH)

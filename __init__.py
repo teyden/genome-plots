@@ -1,1 +1,1 @@
-from mod_plot.parser import *
+from mod_plot.parseNstream import *
