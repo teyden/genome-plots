@@ -87,9 +87,69 @@ def addRefRSIDs_toDB(file):
 		print "%s SNPs added to ReferenceSNPCollection" % numSNPs
 		f.close()
 	else:
-		print "Path <%s> not found" % file
+		print "Path <%s> not found" % fieldnames
 
 # addRefRSIDs_toDB(DEFAULT_REF_FILEPATH)
+
+CHECKLIST = [1,
+ 10001,
+ 20001,
+ 30001,
+ 40001,
+ 50001,
+ 60001,
+ 70001,
+ 80001,
+ 90001,
+ 100001,
+ 110001,
+ 120001,
+ 130001,
+ 140001,
+ 150001,
+ 160001,
+ 170001,
+ 180001,
+ 190001,
+ 200001,
+ 210001,
+ 220001,
+ 230001,
+ 240001,
+ 250001,
+ 260001,
+ 270001,
+ 280001,
+ 290001,
+ 300001,
+ 310001,
+ 320001,
+ 330001,
+ 340001,
+ 350001,
+ 360001,
+ 370001,
+ 380001,
+ 390001,
+ 400001,
+ 410001,
+ 420001,
+ 430001,
+ 440001,
+ 450001,
+ 460001,
+ 470001,
+ 480001,
+ 490001,
+ 500001,
+ 510001,
+ 520001,
+ 530001,
+ 540001,
+ 550001,
+ 560001,
+ 570001,
+ 580001]
 
 def addUsersRSIDs_toDB(file, userObjID=''):
 	"""
@@ -105,90 +165,113 @@ def addUsersRSIDs_toDB(file, userObjID=''):
     }
 
 	"""
+	COUNT = 0
+	k = 0
+
 	if userObjID == '':
 		userObjID = raw_input('Please enter a user ID: ')
-
-	# if not UsersSNPCollection.find({ '_id': userObjID }):
-	# 	UsersSNPCollection.insert({ '_id': userObjID })
 
 	if os.path.exists(file):
 		f = open(file, 'r')
 
-		numSNPs = 0
+		numNewSNPs = 0
 		for line in f:
 			line = line.strip()
 			if line[0] != "#":
 				chr, rsid, pos, refAllele, genotype, variant, score = line.split()
-				numSNPs += 1
+				COUNT += 1
+
+				blue = '<span class="label label-primary">'
+				orange = '<span class="label label-warning">'
+				gray = '<span class="label label-default">'
+				green = '<span class="label label-success">'
 
 				if genotype == 'II' or genotype == 'I':
 					tag = 'insertion'
+					html_tag = blue
 				elif genotype == 'DD' or genotype == 'D':
 					tag = 'deletion'
+					html_tag = blue
 				elif genotype == 'DI' or genotype == 'ID':
 					tag = 'indel'
+					html_tag = blue
 				else:
 					tag = 'normal'
+					if variant == score:  # '-', '-'
+						html_tag = ''
+					elif any(score == x for x in [1, 2]) and variant == '-':
+						html_tag = gray
+					elif score == 1:
+						html_tag = green
+					elif score == 0:
+						html_tag = orange
 
 				# if not UsersSNPCollection.find({ '_id': rsid }):	
-				UsersSNPCollection.insert({
-					'_id': rsid,
-					CHROMOSOME: chr,
-					POSITION: pos,
-					GENOTYPE: genotype,
-					RSID: rsid,
-					'REF': refAllele,
-					'VARIANT': variant,
-					'GENOTYPE_TAG': tag,
-					'MATCH_SCORE': score,
-					'SNPEDIA_LINK': 'http://www.snpedia.com/index.php/'+rsid,
-					'DB_SNP_LINK': 'http://www.ncbi.nlm.nih.gov/SNP/snp_ref.cgi?rs='+rsid,
-					'DATE': datetime.datetime.now().ctime(),
-					'USER_ID': userObjID
-					})
+				if not UsersSNPCollection.find({'_id': rsid}).count():  # = 1 if exists, 0 if doesn't
+					numNewSNPs += 1
+					UsersSNPCollection.insert({
+						'_id': rsid,
+						CHROMOSOME: chr,
+						POSITION: pos,
+						GENOTYPE: genotype,
+						RSID: rsid,
+						'REF': refAllele,
+						'VARIANT': variant,
+						'GENOTYPE_TAG': tag,
+						'MATCH_SCORE': score,
+						'SNPEDIA_LINK': 'http://www.snpedia.com/index.php/'+rsid,
+						'DB_SNP_LINK': 'http://www.ncbi.nlm.nih.gov/SNP/snp_ref.cgi?rs='+rsid,
+						'DATE': datetime.datetime.now().ctime(),
+						'USER_ID': userObjID,
+						'HTML': html_tag
+						})
 
-		print "%s SNPs added to UsersSNPCollection" % numSNPs
+				if COUNT == CHECKLIST[k]:
+					print "[x] Check %s-th complete. %s SNPs parsed so far. %s new SNPs added to the DB. %s parsed SNPs were already in the DB." % (k+1, CHECKLIST[k], numNewSNPs, COUNT-numNewSNPs)
+					k += 1 
+
+		print "[x] Last check complete. %s total SNPs added to the UsersSNPCollection." % (k+1, CHECKLIST[k])
 		f.close()
 	else:
 		print "Path <%s> not found" % file
 
-# addUsersRSIDs_toDB(DEFAULT_OUTPUT_FILEPATH, userObjID="555a83687a349b6910bdff6c")
+addUsersRSIDs_toDB(DEFAULT_OUTPUT_FILEPATH, userObjID="555a83687a349b6910bdff6c")
 
-usersSNPs = [snpColl for snpColl in UsersSNPCollection.find()]
-count = 0
-nadas = []
-for snp in UsersSNPCollection.find():
-	if 'HTML' in snp:
-		count += 1
-		if snp['HTML'] == '<span class="label label-danger">':
-			UsersSNPCollection.update_one(
-				{ '_id': snp['RSID'] }, 
-				{ '$set': 
-					{
-						"HTML": '<span class="label label-primary">'
-					}
-				}
-			)
-		elif snp['HTML'] == '<span class="label label-primary">' and snp['MATCH_SCORE'] == '2' and snp['GENOTYPE_TAG'] == 'normal':
-			UsersSNPCollection.update_one(
-				{ '_id': snp['RSID'] }, 
-				{ '$set': 
-					{
-						"HTML": '<span class="label label-default">'
-					}
-				}
-			)
-		elif snp['HTML'] == '<span class="label label-primary">' and snp['MATCH_SCORE'] == '0' and snp['GENOTYPE_TAG'] == 'normal':
-			UsersSNPCollection.update_one(
-				{ '_id': snp['RSID'] }, 
-				{ '$set': 
-					{
-						"HTML": '<span class="label label-warning">'
-					}
-				}
-			)
-	else:
-		pass
+# usersSNPs = [snpColl for snpColl in UsersSNPCollection.find()]
+# count = 0
+# nadas = []
+# for snp in UsersSNPCollection.find():
+# 	if 'HTML' in snp:
+# 		count += 1
+# 		if snp['HTML'] == '<span class="label label-danger">':
+# 			UsersSNPCollection.update_one(
+# 				{ '_id': snp['RSID'] }, 
+# 				{ '$set': 
+# 					{
+# 						"HTML": '<span class="label label-primary">'
+# 					}
+# 				}
+# 			)
+# 		elif snp['HTML'] == '<span class="label label-primary">' and snp['MATCH_SCORE'] == '2' and snp['GENOTYPE_TAG'] == 'normal':
+# 			UsersSNPCollection.update_one(
+# 				{ '_id': snp['RSID'] }, 
+# 				{ '$set': 
+# 					{
+# 						"HTML": '<span class="label label-default">'
+# 					}
+# 				}
+# 			)
+# 		elif snp['HTML'] == '<span class="label label-primary">' and snp['MATCH_SCORE'] == '0' and snp['GENOTYPE_TAG'] == 'normal':
+# 			UsersSNPCollection.update_one(
+# 				{ '_id': snp['RSID'] }, 
+# 				{ '$set': 
+# 					{
+# 						"HTML": '<span class="label label-warning">'
+# 					}
+# 				}
+# 			)
+# 	else:
+# 		pass
 
 	# if 'HTML' not in snp:
 	# 	count += 1

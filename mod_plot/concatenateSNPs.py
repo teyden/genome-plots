@@ -1,8 +1,7 @@
 import os
 import parseNstream
-from db_model import ChromosomeCollection
 
-DEFAULT_OUTPUT_FILEPATH = '../../BIO_DATA/alleleScores.txt'
+DEFAULT_OUTPUT_FILEPATH = '../../BIO_DATA/concatenateSNPs2.txt'
 DEFAULT_REF_FILEPATH = '../../BIO_DATA/23andme_v4_hg19_ref.txt'
 DEFAULT_USER_FILEPATH = '../../BIO_DATA/raw23andme_SNPs_teyden.txt'
 
@@ -22,7 +21,7 @@ def isIndel(genotype):
 	else:
 		return False 
 
-def scoreAlleles(RefSNPFile, UserSNPFile):
+def concatenateSNPs(RefSNPFile, UserSNPFile):
 	"""
 	Structure of RefSNPdict and UserSNPdict:
 		key = chromosome string as '1', '2', ..., '23' (X), '24' (Y), '25', (MT/M)
@@ -53,10 +52,10 @@ def scoreAlleles(RefSNPFile, UserSNPFile):
 
 	nonMatchedRSIDs = []
 	numMatchedRSIDs = 0
+	snpsConcatenated = 0
 	indel = {}
 
 	F = open(DEFAULT_OUTPUT_FILEPATH, 'w')
-	F.write('#Chrom\tRSID\tPos\tRef\tGenotype\tVariant(s)\tMatch Score\n')
 	for chr in parseNstream.CHROMOSOME_LIST:
 		positions = RefSNPdict[chr].keys()
 		positions.sort()
@@ -82,40 +81,27 @@ def scoreAlleles(RefSNPFile, UserSNPFile):
 
 					# Chromosomes 1-22 will have an allele pair, hence str len of 2
 					if len(sampleAllele) == 2:
-
-						# No base call at the current rsid. [BLANK]
-						if sampleAllele[0] == '-' and sampleAllele[1] == '-': 
+						if sampleAllele[0] == '-' and sampleAllele[1] == '-':
 							variant = '-'
 							score = '-'
-
-						# Score 2, no variants. Both letters are homologous to the reference. [GRAY - default]
 						elif sampleAllele[0].lower() == refAllele.lower() and sampleAllele[1].lower() == refAllele.lower():
 							variant = '-'
 							score = 2
-
-						# Score 1, one variant. Second letter is homologous to the reference. [GREEN - success]
 						elif sampleAllele[0].lower() == refAllele.lower():
 							variant = sampleAllele[1]
 							score = 1
-
-						# Score 1, one variant. First letter is homologous to the reference. [GREEN - success]
 						elif sampleAllele[1].lower() == refAllele.lower():
 							variant = sampleAllele[0]
 							score = 1
-
-						# Score 0, two variants. No homology to the reference. [ORANGE - primary]
 						else:
 							variant = sampleAllele
 							score = 0
 
 					# Mitochondria, X, and Y chromosome alleles are of length 1
 					elif len(sampleAllele) == 1:
-						# No base call at the current rsid. [BLANK]
 						if sampleAllele == '-':
 							variant = '-'
 							score = '-'
-
-						# Score 1, no variants. Only letter is homologous to the reference. [GRAY - default]
 						elif sampleAllele.lower() == refAllele.lower():
 							variant = '-'
 							score = 1
@@ -123,49 +109,22 @@ def scoreAlleles(RefSNPFile, UserSNPFile):
 							variant = sampleAllele
 							score = 0
 
-					F.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\n' % (chr, rsid, pos, refAllele, sampleAllele, variant, score))
+					if score != '-':
+						snpsConcatenated += 1
+
+						if variant == '-':
+							F.write('%s' % sampleAllele[0])
+
+						else:
+							F.write('%s' % variant)
+
 
 	F.close()
-	parseNstream.printMsg("Completed scoring user SNPs to REF SNPs. Streamed to a .teyden (LOL) file format (path=%s)" % DEFAULT_OUTPUT_FILEPATH)
+	parseNstream.printMsg("Completed scoring user SNPs to REF SNPs. Streamed to a .FASTA file (path=%s)" % DEFAULT_OUTPUT_FILEPATH)
 	parseNstream.printMsg('Number of matched rsid values: %s' % numMatchedRSIDs)
+	print "Only the RSID's of the user that existed in the reference data base were used. Also, INDELs were not concatenated."
 	parseNstream.printMsg('Number of unmatched rsid values: %s' % len(nonMatchedRSIDs))
-	return indel 
-
-indel = scoreAlleles(DEFAULT_REF_FILEPATH, DEFAULT_USER_FILEPATH)
-print len(indel)
+	parseNstream.printMsg('Number of SNPs concatenated: %s' % snpsConcatenated)
 
 
-# Add chromosomes to DB
-for chr in indel:
-	totalIndels = len(indel[chr].keys())
-	numInsertions = 0
-	numDeletions = 0
-	numIDDI = 0
-	for pos in indel[chr].keys():
-		if any([indel[chr][pos][GENOTYPE] == x for x in ['I', 'II']]):
-			numInsertions += 1
-		elif any([indel[chr][pos][GENOTYPE] == x for x in ['D', 'DD']]):
-			numDeletions += 1
-		elif any([indel[chr][pos][GENOTYPE] == x for x in ['ID', 'DI']]):
-			numIDDI += 1
-
-	if chr == '23':
-		chrom = 'X'
-	elif chr == '24':
-		chrom = 'Y'
-	elif chr == '25':
-		chrom = 'MT'
-	else:
-		chrom = chr
-	ChromosomeCollection.update_one(
-		{'_id': chr},
-		{'$set':
-			{
-				# 'totalIndels': totalIndels,
-				# 'numIDDI': numIDDI,
-				# 'numInsertions': numInsertions,
-				# 'numDeletions': numDeletions
-				'value': chrom
-			}
-		}
-	)
+concatenateSNPs(DEFAULT_REF_FILEPATH, DEFAULT_USER_FILEPATH)
