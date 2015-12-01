@@ -1,6 +1,3 @@
-from parseNstream import _23andmeObject, printMsg
-# from scoreAlleles import scoreAlleles
-
 import datetime 
 import os
 from flask import request 
@@ -23,6 +20,11 @@ mongo_db = client[MONGO_DATABASE_STR]
 ReferenceSNPCollection = mongo_db.ReferenceSNPCollection
 # ID's are mapped to users_collection id's. Contains the SNPs of a user from user_collection
 UsersSNPCollection = mongo_db.SNPCollection.users
+CollectbyChromosome_1to5 = mongo_db.SNPCollection.chr1to5
+CollectbyChromosome_6to11 = mongo_db.SNPCollection.chr6to11
+CollectbyChromosome_12to17 = mongo_db.SNPCollection.chr12to17
+CollectbyChromosome_18to25 = mongo_db.SNPCollection.chr18to25
+
 ChromosomeCollection = mongo_db.ChromosomeCollection
 # Collection of all users registered (through /signup)
 users_collection = mongo_db.users_collection
@@ -39,57 +41,6 @@ AccessCodes = mongo_db.AccessCodes
 users = users_collection.users
 rsIDs = rsIDs_collection.rsIDs 
 suggestMsgs = suggestMsgs_collection.suggestMsgs
-
-
-# UserChromosomeDict = _23andmeObject('../../BIO_DATA/raw23andme_SNPs_teyden.txt', 'RSID')
-
-# for item in rsIDs.find():
-# 	if item['RSID'] not in UserChromosomeDict:
-# 		print item['RSID']
-
-
-DEFAULT_OUTPUT_FILEPATH = '../../BIO_DATA/alleleScores.txt'
-DEFAULT_REF_FILEPATH = '../../BIO_DATA/23andme_v4_hg19_ref.txt'
-DEFAULT_USER_FILEPATH = '../../BIO_DATA/raw23andme_SNPs_teyden.txt'
-
-# Value... (fieldnames)
-RSID = 'RSID'
-DESCRIPTION = 'DESCRIPTION'
-CHROMOSOME = 'CHROMOSOME'
-POSITION = 'POSITION'
-GENOTYPE = 'GENOTYPE'
-DATE = 'DATE'
-
-def addRefRSIDs_toDB(file):
-	"""
-	file is the reference HG file used for 23andme genotyping
-
-	adds every reference snp to the db 
-	"""
-	if os.path.exists(file):
-		f = open(file, 'r')
-
-		numSNPs = 0
-		for line in f:
-			line = line.strip()
-			if line[0] != "#":
-				chromosome, position, rsid, genotype = line.split()
-				numSNPs += 1
-
-				if not ReferenceSNPCollection.find({ '_id': rsid }):				
-					ReferenceSNPCollection.insert({
-						'_id': rsid,
-						CHROMOSOME: chromosome,
-						POSITION: position, 
-						GENOTYPE: genotype
-						})
-
-		print "%s SNPs added to ReferenceSNPCollection" % numSNPs
-		f.close()
-	else:
-		print "Path <%s> not found" % fieldnames
-
-# addRefRSIDs_toDB(DEFAULT_REF_FILEPATH)
 
 CHECKLIST = [1,
  10001,
@@ -149,93 +100,138 @@ CHECKLIST = [1,
  550001,
  560001,
  570001,
- 580001]
+ 580001,
+ 586283, 
+ -1]
 
-def addUsersRSIDs_toDB(file, userObjID=''):
-	"""
-	Adds every user snp from the file output of scoreAlleles() to UsersSNPCollection
-	as a JSON. The object id value for each SNP JSON collection is the same object
-	id as the user's object id in users_collection.
+DEFAULT_SCORED_FILEPATH = '../../BIO_DATA/alleleScores.txt'
+DEFAULT_REF_FILEPATH = '../../BIO_DATA/23andme_v4_hg19_ref.txt'
+DEFAULT_USER_FILEPATH = '../../BIO_DATA/raw23andme_SNPs_teyden.txt'
+
+# Value... (fieldnames)
+RSID = 'RSID'
+DESCRIPTION = 'DESCRIPTION'
+CHROMOSOME = 'CHROMOSOME'
+POSITION = 'POSITION'
+GENOTYPE = 'GENOTYPE'
+DATE = 'DATE'
+
+# def addRefRSIDs_toDB(file):
+# 	"""
+# 	file is the reference HG file used for 23andme genotyping
+
+# 	adds every reference snp to the db 
+# 	"""
+# 	if os.path.exists(file):
+# 		f = open(file, 'r')
+
+# 		numSNPs = 0
+# 		for line in f:
+# 			line = line.strip()
+# 			if line[0] != "#":
+# 				chromosome, position, rsid, genotype = line.split()
+# 				numSNPs += 1
+
+# 				if not ReferenceSNPCollection.find({ '_id': rsid }):				
+# 					ReferenceSNPCollection.insert({
+# 						'_id': rsid,
+# 						CHROMOSOME: chromosome,
+# 						POSITION: position, 
+# 						GENOTYPE: genotype
+# 						})
+
+# 		print "%s SNPs added to ReferenceSNPCollection" % numSNPs
+# 		f.close()
+# 	else:
+# 		print "Path <%s> not found" % fieldnames
+
+# # addRefRSIDs_toDB(DEFAULT_REF_FILEPATH)
+
+# def addUsersRSIDs_toDB(file, userObjID=''):
+# 	"""
+# 	Adds every user snp from the file output of scoreAlleles() to UsersSNPCollection
+# 	as a JSON. The object id value for each SNP JSON collection is the same object
+# 	id as the user's object id in users_collection.
 	
-	file: a file output from scoreAlleles().
-	userObjID: a user id from the users_collection.users
+# 	file: a file output from scoreAlleles().
+# 	userObjID: a user id from the users_collection.users
 
-	"_id": {
-        "$oid": "555a83687a349b6910bdff6c"
-    }
+# 	"_id": {
+#         "$oid": "555a83687a349b6910bdff6c"
+#     }
 
-	"""
-	COUNT = 0
-	k = 0
+# 	"""
+# 	COUNT = 0
+# 	k = 0
 
-	if userObjID == '':
-		userObjID = raw_input('Please enter a user ID: ')
+# 	if userObjID == '':
+# 		userObjID = raw_input('Please enter a user ID: ')
 
-	if os.path.exists(file):
-		f = open(file, 'r')
+# 	if os.path.exists(file):
+# 		f = open(file, 'r')
 
-		numNewSNPs = 0
-		for line in f:
-			line = line.strip()
-			if line[0] != "#":
-				chr, rsid, pos, refAllele, genotype, variant, score = line.split()
-				COUNT += 1
+# 		numNewSNPs = 0
+# 		for line in f:
+# 			line = line.strip()
+# 			if line[0] != "#":
+# 				chr, rsid, pos, refAllele, genotype, variant, score = line.split()
+# 				COUNT += 1
 
-				blue = '<span class="label label-primary">'
-				orange = '<span class="label label-warning">'
-				gray = '<span class="label label-default">'
-				green = '<span class="label label-success">'
+# 				blue = '<span class="label label-primary">'
+# 				orange = '<span class="label label-warning">'
+# 				gray = '<span class="label label-default">'
+# 				green = '<span class="label label-success">'
 
-				if genotype == 'II' or genotype == 'I':
-					tag = 'insertion'
-					html_tag = blue
-				elif genotype == 'DD' or genotype == 'D':
-					tag = 'deletion'
-					html_tag = blue
-				elif genotype == 'DI' or genotype == 'ID':
-					tag = 'indel'
-					html_tag = blue
-				else:
-					tag = 'normal'
-					if variant == score:  # '-', '-'
-						html_tag = ''
-					elif any(score == x for x in [1, 2]) and variant == '-':
-						html_tag = gray
-					elif score == 1:
-						html_tag = green
-					elif score == 0:
-						html_tag = orange
+# 				if genotype == 'II' or genotype == 'I':
+# 					tag = 'insertion'
+# 					html_tag = blue
+# 				elif genotype == 'DD' or genotype == 'D':
+# 					tag = 'deletion'
+# 					html_tag = blue
+# 				elif genotype == 'DI' or genotype == 'ID':
+# 					tag = 'indel'
+# 					html_tag = blue
+# 				else:
+# 					tag = 'normal'
+# 					if variant == score:  # '-', '-'
+# 						html_tag = ''
+# 					elif any(score == x for x in [1, 2]) and variant == '-':
+# 						html_tag = gray
+# 					elif score == 1:
+# 						html_tag = green
+# 					elif score == 0:
+# 						html_tag = orange
 
-				# if not UsersSNPCollection.find({ '_id': rsid }):	
-				if not UsersSNPCollection.find({'_id': rsid}).count():  # = 1 if exists, 0 if doesn't
-					numNewSNPs += 1
-					UsersSNPCollection.insert({
-						'_id': rsid,
-						CHROMOSOME: chr,
-						POSITION: pos,
-						GENOTYPE: genotype,
-						RSID: rsid,
-						'REF': refAllele,
-						'VARIANT': variant,
-						'GENOTYPE_TAG': tag,
-						'MATCH_SCORE': score,
-						'SNPEDIA_LINK': 'http://www.snpedia.com/index.php/'+rsid,
-						'DB_SNP_LINK': 'http://www.ncbi.nlm.nih.gov/SNP/snp_ref.cgi?rs='+rsid,
-						'DATE': datetime.datetime.now().ctime(),
-						'USER_ID': userObjID,
-						'HTML': html_tag
-						})
+# 				# if not UsersSNPCollection.find({ '_id': rsid }):	
+# 				if not UsersSNPCollection.find({'_id': rsid}).count():  # = 1 if exists, 0 if doesn't
+# 					numNewSNPs += 1
+# 					UsersSNPCollection.insert({
+# 						'_id': rsid,
+# 						CHROMOSOME: chr,
+# 						POSITION: pos,
+# 						GENOTYPE: genotype,
+# 						RSID: rsid,
+# 						'REF': refAllele,
+# 						'VARIANT': variant,
+# 						'GENOTYPE_TAG': tag,
+# 						'MATCH_SCORE': score,
+# 						'SNPEDIA_LINK': 'http://www.snpedia.com/index.php/'+rsid,
+# 						'DB_SNP_LINK': 'http://www.ncbi.nlm.nih.gov/SNP/snp_ref.cgi?rs='+rsid,
+# 						'DATE': datetime.datetime.now().ctime(),
+# 						'USER_ID': userObjID,
+# 						'HTML': html_tag
+# 						})
 
-				if COUNT == CHECKLIST[k]:
-					print "[x] Check %s-th complete. %s SNPs parsed so far. %s new SNPs added to the DB. %s parsed SNPs were already in the DB." % (k+1, CHECKLIST[k], numNewSNPs, COUNT-numNewSNPs)
-					k += 1 
+# 				if COUNT == CHECKLIST[k]:
+# 					print "[x] Check %s-th complete. %s SNPs parsed so far. %s new SNPs added to the DB. %s parsed SNPs were already in the DB." % (k+1, CHECKLIST[k], numNewSNPs, COUNT-numNewSNPs)
+# 					k += 1 
 
-		print "[x] Last check complete. %s total SNPs added to the UsersSNPCollection." % (k+1, CHECKLIST[k])
-		f.close()
-	else:
-		print "Path <%s> not found" % file
+# 		print "[x] Last check complete. %s total SNPs added to the UsersSNPCollection." % (k+1, CHECKLIST[k])
+# 		f.close()
+# 	else:
+# 		print "Path <%s> not found" % file
 
-addUsersRSIDs_toDB(DEFAULT_OUTPUT_FILEPATH, userObjID="555a83687a349b6910bdff6c")
+# addUsersRSIDs_toDB(DEFAULT_OUTPUT_FILEPATH, userObjID="555a83687a349b6910bdff6c")
 
 # usersSNPs = [snpColl for snpColl in UsersSNPCollection.find()]
 # count = 0
@@ -313,5 +309,3 @@ addUsersRSIDs_toDB(DEFAULT_OUTPUT_FILEPATH, userObjID="555a83687a349b6910bdff6c"
 	# 		)
 	# 	else:
 	# 		nadas.append(snp)
-
-printMsg("SNP's updated = %s; SNP's not updated and don't know why = %s, SNP's already updated = %s" % (len(usersSNPs)-count, len(nadas), count))
