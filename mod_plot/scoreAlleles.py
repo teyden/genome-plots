@@ -51,9 +51,12 @@ def scoreAlleles(RefSNPFile, UserSNPFile):
 	RefSNPdict = parseNstream._referenceObject(RefSNPFile, 'CHROMOSOME')
 	UserSNPdict = parseNstream._23andmeObject(UserSNPFile, 'CHROMOSOME')
 
-	nonMatchedRSIDs = []
-	numMatchedRSIDs = 0
-	indel = {}
+	# Keep track of RSIDs in the  that do not match in position and rsid value in tuples (ref rsid, user rsid)
+	nonMatchedRSIDs = []	
+	# Count number of RSIDs whose positions in a chr match for both ref and user, and report it at the end. 
+	numMatchedRSIDs = 0		
+	# Keep track of indels
+	indel = {}		
 
 	F = open(DEFAULT_OUTPUT_FILEPATH, 'w')
 	F.write('#Chrom\tRSID\tPos\tRef\tGenotype\tVariant(s)\tMatch Score\n')
